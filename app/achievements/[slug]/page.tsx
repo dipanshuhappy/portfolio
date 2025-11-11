@@ -11,8 +11,9 @@ export async function generateStaticParams() {
   }))
 }
 
-export function generateMetadata({ params }) {
-  let achievement = getAchievements().find((achievement) => achievement.slug === params.slug)
+export async function generateMetadata({ params }) {
+  const { slug } = await params
+  let achievement = getAchievements().find((achievement) => achievement.slug === slug)
   if (!achievement) {
     return
   }
@@ -51,8 +52,9 @@ export function generateMetadata({ params }) {
   }
 }
 
-export default function Achievement({ params }) {
-  let achievement = getAchievements().find((achievement) => achievement.slug === params.slug)
+export default async function Achievement({ params }) {
+  const { slug } = await params
+  let achievement = getAchievements().find((achievement) => achievement.slug === slug)
 
   if (!achievement) {
     notFound()
