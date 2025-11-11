@@ -1,0 +1,108 @@
+---
+title: 'Normie.tech Stablecoin Infrastructure'
+publishedAt: '2023-09-15'
+summary: 'Scaled stablecoin infrastructure at Normie.tech, handling millions in transaction volume with robust smart contract architecture.'
+github: 'https://github.com/normie-tech/stablecoin-infra'
+demo: 'https://normie.tech'
+tech: ['Solidity', 'Node.js', 'PostgreSQL', 'Redis', 'Docker']
+---
+
+# Normie.tech Stablecoin Infrastructure
+
+At Normie.tech, I led the development and scaling of our stablecoin infrastructure, building a robust system capable of handling millions of dollars in transaction volume while maintaining security and reliability.
+
+## Project Overview
+
+The stablecoin infrastructure project involved creating a comprehensive system for minting, burning, and managing stablecoin tokens with automated collateral management and real-time price feeds.
+
+## Technical Architecture
+
+### Smart Contract Layer
+- **ERC-20 Compliant Stablecoin**: Built with OpenZeppelin standards
+- **Collateral Management**: Automated over-collateralization system
+- **Price Oracle Integration**: Chainlink price feeds for real-time data
+- **Emergency Mechanisms**: Circuit breakers and pause functionality
+
+### Backend Services
+```solidity
+// Example: Core stablecoin contract structure
+contract NormieStablecoin is ERC20, Ownable, ReentrancyGuard {
+    using SafeMath for uint256;
+
+    mapping(address => uint256) public collateralBalances;
+    uint256 public constant COLLATERAL_RATIO = 150; // 150%
+
+    function mint(uint256 amount) external nonReentrant {
+        uint256 requiredCollateral = calculateCollateral(amount);
+        require(collateralBalances[msg.sender] >= requiredCollateral, "Insufficient collateral");
+
+        _mint(msg.sender, amount);
+        emit Mint(msg.sender, amount);
+    }
+}
+```
+
+## Key Features
+
+### 1. Automated Collateral Management
+- Real-time monitoring of collateralization ratios
+- Automatic liquidation mechanisms
+- Multi-asset collateral support
+
+### 2. Scalable Backend
+- Microservices architecture with Docker containers
+- Redis caching for high-frequency operations
+- PostgreSQL for persistent data storage
+- Event-driven architecture with message queues
+
+### 3. Security Measures
+- Multi-signature wallet integration
+- Rate limiting and DDoS protection
+- Comprehensive audit trails
+- Automated security monitoring
+
+## Performance Metrics
+
+- **Transaction Throughput**: 1000+ TPS during peak periods
+- **Uptime**: 99.9% availability maintained
+- **Volume Processed**: $50M+ in total transaction volume
+- **Gas Optimization**: 40% reduction in transaction costs
+
+## Challenges Solved
+
+### Scalability Issues
+Initially, the system struggled with high transaction volumes. I implemented:
+- Database query optimization
+- Caching layers with Redis
+- Load balancing across multiple nodes
+
+### Security Vulnerabilities
+Identified and resolved several security issues:
+- Reentrancy attacks prevention
+- Flash loan attack mitigation
+- Access control improvements
+
+## Technology Stack
+
+- **Smart Contracts**: Solidity, Hardhat, OpenZeppelin
+- **Backend**: Node.js, Express.js, TypeScript
+- **Database**: PostgreSQL with Redis caching
+- **Infrastructure**: Docker, Kubernetes, AWS
+- **Monitoring**: Grafana, Prometheus, DataDog
+
+## Impact
+
+The infrastructure improvements resulted in:
+- 300% increase in transaction processing capacity
+- 50% reduction in operational costs
+- Zero security incidents during my tenure
+- Successful handling of multiple high-volume events
+
+## Lessons Learned
+
+1. **Security is Paramount**: Every line of smart contract code must be thoroughly audited
+2. **Monitoring is Critical**: Real-time monitoring saved us from several potential issues
+3. **Scalability Planning**: Always design for 10x current load
+4. **Community Feedback**: User feedback was invaluable for feature prioritization
+
+This project was instrumental in establishing Normie.tech as a reliable player in the DeFi space and taught me valuable lessons about building production-ready blockchain infrastructure.
