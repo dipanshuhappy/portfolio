@@ -1,0 +1,244 @@
+---
+title: 'Rust from intuition part 1'
+publishedAt: '2025-11-05'
+summary: 'Are you stuck in tutorial hell? Failling to graps borrow checker? Well what if there was an intuitive way to learn rust! '
+---
+
+# Rust
+First off, this blog is for those who have at least dabbled in any other programming languages. If you're new to programming, you might want to start with a language like Python or JavaScript before diving into Rust.
+Still here? Great! Let's dive in.
+
+[](xcde-meme)
+## Why Rust is like this?
+How I cope with learning new languages, is that I justify its syntax, design patterns and idioms. For example Javascript is known for absurdities like
+```javascript
+'5' == 5
+```
+This can be justified considering that the language, was toyed in 10 days by Brendan Eich and initially designed for non-engineers (that's right) while riding the java wave.
+
+Back to rust, the original motivations came from imagining bug free elevator in Graydon Hoare apartments, the creator of Rust, say how poor memory management in C/ C++ was a major problem in software development and elevator software. Rust was designed to solve this problem and have zero cost to the abstraction it brings by solving it.
+
+Example of memory mis-management in c++
+```c++
+int main() {
+    // 1. We allocate an integer on the heap by using `new` keyword.
+    //    We get a pointer 'floor' to that memory.
+    int* floor = new int(3);
+
+    // 2. We use it. Everything is fine.
+    goto_floor_at(floor);
+
+    // 3. We are done with the memory, so we free it, if not we cause memory leak
+    delete floor;
+
+    // 4. THE BUG: We accidentally try to use the memory
+    //    that we just freed.
+    goto_fllor_at(floor);
+
+    return 0;
+}
+
+```
+Here you can imagine the heap to be a space of memory that can be allocated and deallocated dynamically. The C++ code would have crashed in runtime wihtout ever warning at the complier level.
+
+In other languages, they have an abstraction layer called Garbage Collection (GC) that automatically manages memory for you. But it has performance cost to it. But lets look at how rust handles this without a GC.
+
+Example of trying the same memory mis-management in rust
+```rust
+// A helper function that takes *ownership* of the Box
+fn destroy_floor_box(b: Box<i32>) {
+    println!("Taking ownership of box with value: {}", b);
+    // `b` goes out of scope *here* and is automatically dropped
+}
+
+// A helper function that just *borrows* a reference
+fn goto_floor_at(f: &i32) {
+    println!("Going to floor: {}", f);
+}
+
+fn main() {
+    // 1. Create a variable stored in the heap using Box::new()
+    let floor = Box::new(3);
+
+    // 2. We pass a *borrow* (&) so we keep ownership.
+    goto_floor_at(&floor); // This is fine.
+
+    // 3. We pass the *value* itself, which *moves* ownership.
+    //    `floor` is now GONE.
+    destroy_floor_box(floor);
+
+    // 4. THE BUG: We try to use `floor` after it was moved.
+    goto_floor_at(&floor); // <-- COMPILER ERROR
+}
+```
+Okay first off notice how the idea of "memory management" is embeded in the language itself. It's called "ownership" in rust and its enforced by the borrow checker. The above rust code, fails gracefully to compile with a message like this.
+```txt
+error[E0382]: borrow of moved value: `floor`
+   --> src/main.rs:289:19
+    |
+279 |     let floor = Box::new(3);
+    |         ----- move occurs because `floor` has type `Box<i32>`, which does not implement the `Copy` trait
+...
+286 |     destroy_floor_box(floor);
+    |                       ----- value moved here
+...
+289 |     goto_floor_at(&floor); // <-- COMPILER ERROR
+    |                   ^^^^^^ value borrowed here after move
+    |
+note: consider changing this parameter type in function `destroy_floor_box` to borrow instead if owning the value isn't necessary
+   --> src/main.rs:267:25
+    |
+267 | fn destroy_floor_box(b: Box<i32>) {
+    |    -----------------    ^^^^^^^^ this parameter takes ownership of the value
+    |    |
+    |    in this function
+help: consider cloning the value if the performance cost is acceptable
+    |
+286 |     destroy_floor_box(floor.clone());
+    |                            ++++++++
+
+For more information about this error, try `rustc --explain E0382`.
+error: could not compile `delete-me` (bin "delete-me") due to 1 previous error
+```
+Let's develop an intuition for the borrow checker
+
+## Its all about Ownership
+
+In all programming lanuage, you have ways to manipulate data in stack or heaps. Stack in short is last in first out data structure while heap as said before is a data structure that allows you to allocate memory dynamically.
+A rust program interacting with stack memory only looks like
+```rust
+// 1. Stack Only
+fn main() {
+    // When `main` is called, its stack frame is pushed.
+    // The stack looks like this:
+    //
+    // STACK
+    // +---------------+
+    // | Frame: main   |
+    // +---------------+
+    // | ... (empty)   |
+
+    let x = 5; // `x` (value 5) is put on `main`'s stack plate.
+
+    // The variable `x` is now added to `main`'s frame:
+    //
+    // STACK
+    // +---------------+
+    // | Frame: main   |
+    // |   x = 5       |
+    // +---------------+
+    // | ... (empty)   |
+
+} // `main` ends, plate is popped. `x` is gone. Simple.
+```
+But complex programs need dynamic allocation of memory i.e heap. Hence in rsut we could imageine
+```rust
+// 2. Stack + Heap
+fn main() {
+    //
+    // STACK (Before)       HEAP (Before)
+    // (      empty      )   (   empty   )
+    //
+
+    // `main` is called. Its stack frame is pushed.
+    //
+    // STACK:               HEAP:
+    // ( Frame: main     )   (   empty   )
+    // (-----------------)
+
+    // 1. `Box::new(3)` asks the OS for memory on the heap.
+    // 2. The OS allocates space and puts the value `3` there.
+    // 3. `Box::new` returns a "smart pointer" (the `Box`)
+    //    that points to the `3` on the heap.
+    // 4. This pointer, `s`, is stored on the stack.
+    let x = Box::new(3);
+
+    //
+    // STACK:               HEAP:
+    // ( Frame: main     )
+    // (   s = (ptr)----->)--> (   3   )
+    // (-----------------)   (---------)
+    //
+
+}
+```
+
+Now if you were in C++, you would have to put in ```delete``` or ```free``` keywords to deallocate the heap memory. But in rust we can use the fact that if memory is added to the stack for a certain closure (closure for now you can imagine as a function with its local scope), the memory is automatically freed up when the closure is finished executing. That's one of the ways rust "automatically" manages memory. You could say that the variable `x` owned the value smart pointer of `5` till a certain point ( lets call that duration it's `lifetime` ) ended at the closure ending and rust compiler automatically made sure to free up the memory.
+But again complex programs require passing around variables, then how do you manage memory in such a way that you guarantee that where ever it's passed around the original memory is not corrupted or freed up ? What if I want to pass it, mutate it and return it in place?
+
+### Ownership syntax
+You ```move``` ownership of a variable by simply passing it.
+```rust
+fn take_the_book(book: String) {
+    println!("I own this book now: {}", book);
+    // `book` is owned by this function, and is dropped here
+}
+
+fn main() {
+    let my_book = String::from("Rust for Dummies");
+
+    // We "Move" the book to the function.
+    take_the_book(my_book);
+
+    // This line would not compile! We don't own the book anymore.
+    // println!("My book: {}", my_book);
+}
+```
+Simple ```stack``` only data like ```bool```, ```i32``` and ```char``` don't "move". They are copied instead, because it's efficient.
+
+```rust
+fn main() {
+    let x = 5; // x is an i32, which is `Copy`
+    let y = x; // The value is *copied*. `x` is still valid.
+
+    // This is perfectly fine!
+    println!("x = {}, y = {}", x, y);
+}
+```
+
+
+But what if you don't want to give the memory away? What if you just want to let the function read it?
+
+You can "lend" it by passing a reference. This is called borrowing. A reference is like a pointer that doesn't take ownership. You use the & (ampersand) to create one.
+
+```rust
+// This function *borrows* the book with a reference.
+fn read_the_book(book: &String) {
+    println!("I'm just reading: {}", book);
+} // The reference `book` is dropped, but the original my_book is fine.
+
+fn main() {
+    let my_book = String::from("Rust for Dummies");
+
+    // We pass a *reference* (&) to the book.
+    // We are still the owner.
+    read_the_book(&my_book);
+
+    // This is perfectly fine! We still own the book.
+    println!("I still have my book: {}", my_book);
+}
+```
+Now to answer your other question: "What if I want to pass it, mutate it and return it in place?"
+For that, you use a mutable borrow: &mut. This is like lending the book and a pen. The function can change the original data.
+```rust
+// This function takes a *mutable borrow*
+fn add_sequel(book: &mut String) {
+    book.push_str(", Part II");
+}
+
+fn main() {
+    // We must declare `my_book` as `mut` to allow this.
+    let mut my_book = String::from("Rust by intuition");
+
+    // We pass a mutable borrow.
+    add_sequel(&mut my_book);
+
+    // The original variable has been changed!
+    println!("{}", my_book); // Prints "Rust for Dummies, Part II"
+}
+```
+
+## Conclusion
+it's memory. If you try to fight the borrow checker, you'll get stuck. If you learn to think like it, everything clicks. To build that intuition, you only need to keep one question in your mind for every piece of data you create:
+
+> Which variable on the stack is the 'owner' responsible for freeing this memory when its scope ends?"
