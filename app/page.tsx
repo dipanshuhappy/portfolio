@@ -1,5 +1,5 @@
 import { BlogPosts } from 'app/components/posts'
-import { Projects } from 'app/components/projects'
+// import { Projects } from 'app/components/projects'
 import { Achievements } from 'app/components/achievements'
 
 export default function Page() {
@@ -29,10 +29,10 @@ export default function Page() {
         <BlogPosts limit={3} />
       </div>
 
-      <div className="my-8">
+      {/* <div className="my-8">
         <h2 className="font-semibold text-xl mb-4 tracking-tighter">Featured Projects</h2>
         <Projects limit={3} />
-      </div>
+      </div> */}
 
       <div className="my-8">
         <h2 className="font-semibold text-xl mb-4 tracking-tighter">Recent Achievements</h2>
