@@ -26,7 +26,7 @@ export default function Page() {
 
       <div className="my-8">
         <h2 className="font-semibold text-xl mb-4 tracking-tighter">Latest Blog Posts</h2>
-        <BlogPosts limit={3} />
+        <BlogPosts limit={4} />
       </div>
 
       {/* <div className="my-8">
